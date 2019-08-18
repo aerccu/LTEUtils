@@ -64,7 +64,7 @@ T dbu_20(const T sig){
 }
 
 inline double dbu_20(const double val){
-    return pow(10.0, val/20.0)
+    return pow(10.0, val/20.0);
 }
 
 
