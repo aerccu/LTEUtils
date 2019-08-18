@@ -23,5 +23,49 @@
 
 #include <cmath>
 #include <complex>
+#include <itpp/itbase.h>
+
+using namespace std;
+using namespace itpp;
+
+/* compute db values */
+template <class T>
+T db_10(const T sig){
+    return 10*log10(sig);
+}
+
+template <class T>
+T db_20(const T sig){
+    return 20*log10(sig);
+}
+
+template <class T>
+T dbu_10(const T sig){
+    T res;
+    res.set_length(length(sig), false);
+    for (int t=0; t<length(s); t++){
+        res(t)=10^(sig(t)/10);
+    }
+    return res;
+}
+
+inline double dbu_10(const double val){
+    return pow(10.0, val/10.0);
+}
+
+template <class T>
+T dbu_20(const T sig){
+    T res;
+    res.set_length(length(sig), false);
+    for (int t=0; t<length(sig); t++){
+        res(t)=10^(sig(t)/20);
+    }
+    return res;
+}
+
+inline double dbu_20(const double val){
+    return pow(10.0, val/20.0)
+}
+
 
 #endif
