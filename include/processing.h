@@ -23,9 +23,13 @@
 
 #include <cmath>
 #include <complex>
+#include <cassert>
+#include <string>
+#include <boost/math/special_functions.hpp>
 #include <itpp/itbase.h>
 
 using namespace std;
+using namespace boost;
 using namespace itpp;
 
 /* compute db values */
@@ -65,6 +69,67 @@ T dbu_20(const T sig){
 
 inline double dbu_20(const double val){
     return pow(10.0, val/20.0);
+}
+
+inline cvec whitenoise(const uint32_t &samp){
+    return randn_c(samp);
+}
+
+template <class T>
+Vec<T> interpolate(const Vec<double> &X,
+                const Vec<T> &Y,
+                const Vec<double> &x){
+
+    assert(length(X)==length(Y));
+    Vec<T> res;
+    res.set_size(length(x));
+
+    if (length(X)==1){
+        res=Y(0);
+        return res;
+    }
+
+    for (uint32_t t=0; t<length(x); t++){
+        uint32_t a = 0;
+        uint32_t b = length(X)-1;
+
+        while (b-a > 1){
+            uint32_t mid = round_i((a+b)/2.0);
+            if (x(t)>=X(mid)){
+                a = mid;
+            } else {
+                b = mid;
+            }
+        }
+        res(t) = Y(a)+(x(t)-X(a))
+                * (Y(b)-Y(a))
+                / (X(b)-X(a));
+    }
+    return res;
+}
+
+inline double chisqrpdf(double &v, double &x){
+    return math::gamma_p_derivative(v/2, v/2)/2;
+}
+
+inline double chisqrcdf(double &v, double &x){
+    return math::gamma_p(v/2, x/2);
+}
+
+inline double chisqrcdfcomp(double &v, double &x){
+    return math::gamma_q(v/2, x/2);
+}
+
+inline double chisqrquantile(double &v, double &p){
+    return math::gamma_p_inv(v/2, p);
+}
+
+inline double chisqrcompquantile(double &v, double &p){
+    return math::gamma_q_inv(v/2, p);
+}
+
+inline double skewness(double &v){
+    return 2*sqrt(2/v);
 }
 
 
