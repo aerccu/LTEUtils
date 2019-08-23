@@ -108,6 +108,55 @@ Vec<T> interpolate(const Vec<double> &X,
     return res;
 }
 
+template <class T>
+double avgpwr(const T v){
+    double res=0.0;
+    for (uint t=0; t<length(v); t++){
+        res += pow(real(v(t)),2)+pow(imag(v(t)),2);
+    }
+    return res/length(v);
+}
+
+/* frequency shifting */
+inline cvec fshift(const cvec *vec, 
+                const double f, 
+                const double fs){
+    double k = f*M_PI/(fs/2);
+    const uint32_t len = length(vec);
+    cvec res(len);
+    std::complex<double> coef;
+    for (uint32_t t=0; t<len; t++){
+        coef.real() = cos(k*t);
+        coef.imag() = cos(k*t);
+        res(t) = vec(t)*coef;
+    }
+    return res;
+}
+
+inline cvec fshift(const cvec &vec, const double &f){
+    return fshift(vec,f,2);
+}
+
+inline cvec fshift_in(const cvec *vec, 
+                const double f, 
+                const double fs){
+    double k = f*M_PI/(fs/2);
+    const uint32_t len = length(vec);
+    cvec res(len);
+    std::complex<double> coef;
+    for (uint32_t t=0; t<len; t++){
+        coef.real() = cos(k*t);
+        coef.imag() = cos(k*t);
+        res(t) = coef;
+    }
+    return res;
+}
+
+inline void fshift_in(cvec &vec, const double f){
+    fshift_in(vec,f,2);
+}
+
+
 inline double chisqrpdf(double &v, double &x){
     return math::gamma_p_derivative(v/2, v/2)/2;
 }
