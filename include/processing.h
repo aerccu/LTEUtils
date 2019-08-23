@@ -153,8 +153,32 @@ inline cvec fshift_in(const cvec *vec,
 }
 
 inline void fshift_in(cvec &vec, const double f){
-    fshift_in(vec,f,2);
+    return fshift_in(vec,f,2);
 }
+
+/* time shifting */
+template <class T>
+void tshift(T &vec, const double n){
+    cassert(cloor_I(n)==n);
+    if (n>0){
+        T vecr = vec.right(n);
+        for (uint32_t t=vec.length()-1; t--){
+            vec[t] = v[t-n];
+        }
+        for (uint32_t t=0; t<n; t++){
+            vec[t] = vecr[t]; 
+        }
+    } else {
+        T vecl = v.left(n);
+        for (uint32_t t=0; vec.length()-n; t++){
+            vec[t] = vec[t+n];
+        }
+        for (uint32_t t=0; t<n; t++){
+            vec[t+vec.length()-n]=vecl[t];
+        }
+    }
+}
+
 
 
 inline double chisqrpdf(double &v, double &x){
