@@ -27,6 +27,7 @@
 #include <string>
 #include <boost/math/special_functions.hpp>
 #include <itpp/itbase.h>
+#include <itpp/itsignal.h>
 
 using namespace std;
 using namespace boost;
@@ -107,6 +108,39 @@ Vec<T> interpolate(const Vec<double> &X,
     }
     return res;
 }
+
+/* fft based interpolation */
+cvec interpolatefft(const cvec &vec, const uint32_t &n){
+    const uint32_t nx = length(vec);
+    uint32_t factor;
+    uint32_t ny;
+    if (n<nx){
+        factor = floor(nx/n)+1;
+        ny = n*factor;
+    } else {
+        factor = 1;
+        ny = n;
+    }
+
+    cvec xfd = fft(vec);
+    uint32_t nyquist = floor(nx/2);
+    cvec yfdzp = concat(xfd(0,nyquist),zeros_c(ny-nx), xfd(nyquist+1,nx-1));
+
+    if(mod(nx,2)==0){
+        yfdzp(nyquist) = yfdzp(nyquist)/2;
+        yfdzp(nyquist+ny-nx) = yfdzp(nyquist);
+    }
+    cvec yi = ifft(yfdzp);
+    
+    cvec yres(ny);
+    uint32_t cnt = 0;
+    for (uint32_t t=0; t<ny; t++){
+        y(t) = (((double)ny)/nx)*yi(cnt);
+        cnt += factor;
+    }
+    return yres; 
+}
+
 
 template <class T>
 double avgpwr(const T v){
