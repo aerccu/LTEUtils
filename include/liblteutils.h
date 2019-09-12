@@ -16,3 +16,56 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifndef LIBLTEUTILS_H
+#define LIBLTEUTILS_H
+
+#include <stdint.h>
+#include <itpp/itbase.h>
+#include <vector>
+
+using namespace itpp;
+using namespace std;
+
+/* Pseudo Random Binary Sequence */
+bvec prbs(const uint32_t cinit, const uint32_t pn);
+
+
+/* Primary and Secondary Sync Signal - TD & FD */
+class PSSTD {
+    public:
+    PSSTD();
+
+    const cvec& operator[](const uint8_t& idx) const;
+    private:
+    vector<cvec> seq;
+};
+
+class PSSFD {
+    public:
+    PSSFD();
+
+    const cvec& operator[](const uint8_t& idx) const;
+    private:
+    vector<cvec> seq;
+};
+
+
+class SSSFD {
+    public:
+    SSSFD();
+
+    const itpp& operator()(const uint8_t& id1, 
+                        const uint8_t& id2, 
+                        const uint8_t& slot) const;
+    private:
+    static vector<vector<vector<cvec> > > table;
+};
+
+
+
+
+
+
+
+#endif // LIBLTEUTILS_H
