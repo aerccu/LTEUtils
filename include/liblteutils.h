@@ -88,6 +88,30 @@ class RSDL {
 cvec rateMatch(const cmat& d, const uint32_t& nE);
 mat rateUnmatch(const vec& eEst, const uint32_t nC);
 
+/* Convolutional encoding and decoding */
+bmat convEncode(const bvec& c);
+bvec convDecode(const mat& dEst);
+
+/* Class holding modulation maps */
+class ModMap {
+    public:
+    ModMap();
+
+    /* mod : QAM QAM16 QAM64 */
+    const cvec& operator()(const int8_t mod) const;
+
+    private:
+    Array <cvec> table;
+
+};
+
+/* Compute CRC */
+/* crc : CRC8 CRC16 CRC24A/B */
+bvec getCRC(const bvec& a, const int8_t crc);
+
+/* Mod bits to symbols and demod symbols to bits */
+cvec modBits(const bvec& bits, const int8_t mod);
+vec demodSymbs(const cvec& symbs, vec nP, const int8_t mod);
 
 
 #endif // LIBLTEUTILS_H
