@@ -63,8 +63,30 @@ class SSSFD {
 };
 
 
+/* Ref Specific DL*/
+class RSDL {
+    public:
+    RSDL(const uint16_t& nCellID,
+        const uint8_t& nDLRB,
+        const int& CPType);
 
+    const cvec& getRS(const uint8_t slot,
+                    const uint8_t symb) const;
 
+    double getShift(const uint8_t& slot,
+                const uint8_t& symb,
+                const uint8_t& port) const;
+
+    private:
+    uint8_t nSymbDL;
+    std::vector<cvec> table;
+    mat shiftTable;
+};
+
+/* Rate matching/unmatching of convolutionally */
+/* coded transport                             */
+cvec rateMatch(const cmat& d, const uint32_t& nE);
+mat rateUnmatch(const vec& eEst, const uint32_t nC);
 
 
 
