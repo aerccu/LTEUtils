@@ -22,13 +22,22 @@
 
 #include <stdint.h>
 #include <itpp/itbase.h>
+#include <itpp/comm/convcode.h>
+#include <itpp/signal/transforms.h>
+#include <itpp/comm/crc.h>
 #include <vector>
+#include <rtl-sdr.h>
+#include <list>
+#include <complex>
+#include <boost/math/special_functions.hpp>
+#include "processing.h"
 
 using namespace itpp;
 using namespace std;
 
-/* Pseudo Random Binary Sequence */
-bvec prbs(const uint32_t cinit, const uint32_t pn);
+/* Pseudo Random Binary Sequence generation */
+/* 3GPP TS 38.211 Sec. 5.2.1                */
+bvec genPRBS(const uint32_t cinit, const uint32_t pn);
 
 
 /* Primary and Secondary Sync Signal - TD & FD */
