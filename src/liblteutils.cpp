@@ -123,3 +123,46 @@ bvec genPRBS(const uint32_t cinit, const uint32_t pn) {
     return res;
 }
 
+cvec getPSSFD(const uint8_t& t){
+    /* Zadoff-Chu root sequence            */
+    /* Ensuring zero cyclic autocorrection */
+    /* at all nonzero lags                 */
+    const int zcRootSeq[3] = {25, 29, 34};
+    const vector<int> zcSeq(zcRootSeq, zcRootSeq+3);
+    cvec res = exp((complex<double>(0,-1)*pi*zcSeq[t]/63)
+                *elem_mult(ivec("0:62"), ivec("1:63")));
+    res.del(31);
+    return res;
+}
+
+PSSFD::PSSFD(){
+    seq.resize(3);
+    for (uint8_t t=0; t<3; t++){
+        seq[t] = getPSSFD(t);
+    }
+}
+
+const cvec& PSSFD::operator[](const uint8_t& idx) const {
+    return seq[idx];
+}
+
+PSSTD::PSSTD(){
+    cvec fd; cvec td;
+    cvec idft;
+    seq.resize(3);
+    for (uint8_t t=0; t<3; t++){
+        fd = getPSSFD(t);
+        idft = concat(zeros_c(1), fd(31, 61), zeros_c(65), fd(0,30));
+        td = ifft(idft)*sqrt(length(idft)) * sqrt(128.0/62.0);
+        seq[t] = concat(td(119, 127), td);
+    }
+}
+
+const cvec& PSSTD::operator[](const uint8_t& idx) const {
+    return seq[idx];
+}
+
+Vec<int> getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
+    
+
+}
