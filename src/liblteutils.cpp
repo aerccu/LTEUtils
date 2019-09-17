@@ -19,6 +19,7 @@
 
 
 #include "liblteutils.h"
+#include "utils.h"
 
 
 bvec genPRBS(const uint32_t cinit, const uint32_t pn) {
@@ -162,7 +163,46 @@ const cvec& PSSTD::operator[](const uint8_t& idx) const {
     return seq[idx];
 }
 
-Vec<int> getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
-    
 
+
+
+ivec getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
+    
+    const uint32_t qPrime = floor_i(nID1/30);
+    const uint32_t q      = floor_i((nID1+qPrime*(qPrime+1)/2)/30);
+    const uint32_t mPrime = nID1+q*(q+1)/2;
+    const uint32_t m0     = mod(mPrime, 31);
+    const uint32_t m1     = mod(m0+floor_i(mPrime/31)+1, 31);
+
+    ivec sTilda("0 0 0 0 1 0 0 1 0 1 1 0 0 1 1 1 1 1 0 0 0 1 1 0 1 1 1 0 1 0 1");
+    sTilda = 1-2*sTilda;
+
+    ivec cTilda("0 0 0 0 1 0 1 0 1 1 1 0 1 1 0 0 0 1 1 1 1 1 0 0 1 1 0 1 0 0 1");
+    cTilda = 1-2*cTilda;
+
+    ivec zTilda("0 0 0 0 1 1 1 0 0 1 1 0 1 1 1 1 1 0 1 0 0 0 1 0 0 1 0 1 0 1 1");
+    zTilda = 1-2*zTilda;
+
+    ivec s0_m0 = sTilda(mod(range(m0,m0+30),31));
+    ivec s1_m1 = sTilda(mod(range(m1,m1+30),31));
+
+    ivec c0 = cTilda(mod(range(nID2,nID2+30),31));
+    ivec c1 = cTilda(mod(range(nID2+3,nID2+30+3),31));
+
+    ivec z1_m0 = zTilda(mod(range(0,30)+mod(m0,8),31));
+    ivec z1_m1 = zTilda(mod(range(0,30)+mod(m1,8),31));
+
+    ivec d1, d2;
+    if (slot == 0){
+        d2=elem_mult(s1_m1,c1,z1_m0);
+        d1=elem_mult(s0_m0,c0);
+    } else {
+        d2=elem_mult(s0_m0,c1,z1_m1);
+        d1=elem_mult(s1_m1,c0);
+    }
+
+    imat SSS(2,31);
+    SSS.set_row(0,d1);
+    SSS.set_row(1,d2);
+    return cvectorize(SSS);
 }
