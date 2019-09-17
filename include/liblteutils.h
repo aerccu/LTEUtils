@@ -64,7 +64,7 @@ class SSSFD {
     public:
     SSSFD();
 
-    const itpp& operator()(const uint8_t& id1, 
+    const ivec& operator()(const uint8_t& id1, 
                         const uint8_t& id2, 
                         const uint8_t& slot) const;
     private:
