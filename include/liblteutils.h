@@ -32,6 +32,12 @@
 #include <boost/math/special_functions.hpp>
 #include "processing.h"
 
+# define N_MAX_RBDL 110
+# define J (complex<double>(0,1))
+
+enum class cpType {NONE = 0; NORMAL = 1, EXTENDED = 1};
+
+
 using namespace itpp;
 using namespace std;
 
@@ -68,7 +74,7 @@ class SSSFD {
                         const uint8_t& id2, 
                         const uint8_t& slot) const;
     private:
-    static vector<vector<vector<cvec> > > table;
+    vector<vector<vector<ivec> > > table;
 };
 
 
