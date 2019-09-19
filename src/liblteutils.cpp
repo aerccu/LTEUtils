@@ -167,7 +167,7 @@ const cvec& PSSTD::operator[](const uint8_t& idx) const {
 
 
 ivec getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
-    
+
     const uint32_t qPrime = floor_i(nID1/30);
     const uint32_t q      = floor_i((nID1+qPrime*(qPrime+1)/2)/30);
     const uint32_t mPrime = nID1+q*(q+1)/2;
@@ -206,3 +206,57 @@ ivec getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
     SSS.set_row(1,d2);
     return cvectorize(SSS);
 }
+
+SSSFD::SSSFD(){
+    table = vector <vector<vector<ivec> > > (168, vector<vector<ivec>>(3, vector<ivec> (2)));
+    for (uint8_t nID1=0; nID1<168; nID1++){
+        for(uint8_t nID2=0; nID2<3; nID2++){
+            for(uint8_t slot=0; slot<2; slot++){
+                table[nID1][nID2][slot] = getSSSFD(nID1, nID2, 10*slot);
+            }
+        }
+    }
+}
+
+const ivec& SSSFD::operator()(const uint8_t &nID1, const uint8_t &nID2, const uint8_t &slot) const{
+    return table[nID1][nID2][slot!=0];
+}
+
+/* Get Reference Signal - Downlink | PoC */
+cvec getRSDL(const uint32_t &slot, const uint32_t &sym, 
+            const uint32_t &nIDCell, const uint32_t &rbdl,
+            const int8_t cpType){
+
+    const uint32_t nCyclPrefix = 1; // Normal
+    const uint32_t cInit = (1<<10)*(7*(slot+1)+sym+1)*(2*nIDCell+1)+2*nIDCell+nCyclPrefix;
+    const ivec c = to_ivec(genPRBS(cInit, 4*N_MAX_RBDL));
+
+    cvec rlns = (1/pow(2,0.5))*((1-2*c(range(0,2,4*N_MAX_RBDL-1)))
+                +J*(1-2*c(range(1,2,4*N_MAX_RBDL-1))));
+
+    cvec res = rlns(N_MAX_RBDL - rbdl, 2*rbdl + N_MAX_RBDL - rbdl - 1);
+
+    return res;
+}
+
+double getRSDLShift(const uint8_t &slot, const uint8_t &sym, uint8_t &port, const cpType &cycPfx, const uint16_t &nIDCell){
+    uint8_t nSymbDL = (cpType::NONE)? 7 : 6;
+
+    double val = NAN;
+    if((port==0) && (sym==0)){
+        val = 0.0;
+    } else if((port==0)&&(sym==nSymbDL-3)){
+        val = 3.0; 
+    } else if((port==1)&&(sym==0)){
+        val = 3.0;
+    } else if((port==1)&&(sym==nSymbDL-3)){
+        val = 0.0;
+    } else if((port==2)&&(sym==1)){
+        val = 3.0*(slot & 1);
+    } else if((port==3)&&(sym==1)){
+        val = 3.0 + 3.0*(slot & 1);
+    }
+
+    return itpp::mod(val + nIDCell, 6);
+}
+
