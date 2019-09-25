@@ -339,5 +339,5 @@ cvec rateMatch(const cmat& d, const uint32_t& nE){
         }
         j=mod(j+1,3*nR*nC);
     }
-    return 0;
+    return e;
 }
