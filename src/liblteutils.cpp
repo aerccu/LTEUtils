@@ -225,9 +225,9 @@ const ivec& SSSFD::operator()(const uint8_t &nID1, const uint8_t &nID2, const ui
 /* Get Reference Signal - Downlink | PoC */
 cvec getRSDL(const uint32_t &slot, const uint32_t &sym, 
             const uint32_t &nIDCell, const uint32_t &rbdl,
-            const int8_t cpType){
+            const cpType &CPType){
 
-    const uint32_t nCyclPrefix = 1; // Normal
+    const uint32_t nCyclPrefix = (CPType==cpType::NORMAL); // Normal
     const uint32_t cInit = (1<<10)*(7*(slot+1)+sym+1)*(2*nIDCell+1)+2*nIDCell+nCyclPrefix;
     const ivec c = to_ivec(genPRBS(cInit, 4*N_MAX_RBDL));
 
@@ -239,7 +239,9 @@ cvec getRSDL(const uint32_t &slot, const uint32_t &sym,
     return res;
 }
 
-double getRSDLShift(const uint8_t &slot, const uint8_t &sym, uint8_t &port, const cpType &cycPfx, const uint16_t &nIDCell){
+double getRSDLShift(const uint8_t &slot, const uint8_t &sym, uint8_t &port, 
+                    const cpType &cycPfx, const uint16_t &nIDCell){
+
     uint8_t nSymbDL = (cpType::NONE)? 7 : 6;
 
     double val = NAN;
@@ -260,3 +262,82 @@ double getRSDLShift(const uint8_t &slot, const uint8_t &sym, uint8_t &port, cons
     return itpp::mod(val + nIDCell, 6);
 }
 
+RSDL::RSDL(const uint16_t& nCellID,
+        const uint8_t& nDLRB,
+        const cpType &CPType){
+    nSymbDL = 7;
+    if(CPType==cpType::EXTENDED){
+        nSymbDL = 6;
+    }
+
+    table.resize(nSymbDL*20);
+    shiftTable = mat(nSymbDL*20,4);
+    shiftTable = NAN;
+    for (uint8_t slotNum=0; slotNum<20; slotNum++){
+        for (uint8_t t=0; t<3; t++){
+            uint8_t symNumber = (t==2)? (nSymbDL-3):t;
+            table[slotNum*nSymbDL+symNumber] = getRSDL(slotNum,symNumber,nCellID,nDLRB,CPType);
+            if ((t==0) || (1==2)){
+                shiftTable(slotNum*nSymbDL+symNumber,0)=getRSDLShift(slotNum,symNumber,0,CPType,nCellID);
+                shiftTable(slotNum*nSymbDL+symNumber,1)=getRSDLShift(slotNum,symNumber,1,CPType,nCellID);
+            } else {
+                shiftTable(slotNum*nSymbDL+symNumber,2)=getRSDLShift(slotNum,symNumber,2,CPType,nCellID);
+                shiftTable(slotNum*nSymbDL+symNumber,3)=getRSDLShift(slotNum,symNumber,3,CPType,nCellID);
+            }
+        }
+    }
+}
+
+const cvec& RSDL::getRS(const uint8_t slot, const uint8_t symb) const{
+    return table[slot*nSymbDL+symb]; //[DC]
+}
+
+double RSDL::getShift(const uint8_t& slot,const uint8_t& symb,const uint8_t& port) const{
+    return shiftTable(slot*nSymbDL+symb,port);
+}
+
+cvec rateMatch(const cmat& d, const uint32_t& nE){
+    const uint8_t nC = 32;
+    const uint32_t nR = ceil((double)d.cols()/nC);
+
+    const static int permPatternC[] = {1,17,9,25,5,21,13,29,3,19,11,27,7,23,15,31,0,16,8,24,4,20,12,28,2,18,10,26,6,22,14,30};
+    const ivec permPattern(permPatternC,32);
+    cmat v(3,nR*nC);
+
+    #ifndef NDEBUG 
+    v=NAN; 
+    #endif
+
+    for(uint8_t t=0; t<3; t++){
+        cvec rowTMP = d.get_row(t);
+        cvec nanTMP(nR*nC-d.cols());
+        nanTMP = NAN;
+        rowTMP = concat(nanTMP,rowTMP);
+        cmat y = transpose(reshape(rowTMP,nC,nR));
+
+        cmat permY(nR,nC);
+        #ifndef NDEBUG
+        permY=NAN;
+        #endif
+
+        for(uint8 k=0; k<32; k++){
+            permY.set_col(k,y.get_col(permPattern(k)));
+        }
+        v.set_row(t,cvectorize(permY));
+    }
+
+    cvec w = cvectorize(transpose(v));
+
+    cvec e(nE);
+    #ifndef NDEBUG
+    uint32_t k=0;
+    uint32_t j=0;
+    while(k<nE){
+        if(isfinite(w(j).real())){
+            e(k)=w(j);
+            k++;
+        }
+        j=mod(j+1,3*nR*nC);
+    }
+    return 0;
+}
