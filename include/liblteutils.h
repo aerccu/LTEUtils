@@ -35,7 +35,8 @@
 # define N_MAX_RBDL 110
 # define J (complex<double>(0,1))
 
-enum class cpType {NONE = 0; NORMAL = 1, EXTENDED = 1};
+enum class cpType  {NONE = 0, NORMAL = 1, EXTENDED = 2};
+enum class modType {QAM  = 0, QAM16  = 1, QAM64    = 64};
 
 
 using namespace itpp;
@@ -83,7 +84,7 @@ class RSDL {
     public:
     RSDL(const uint16_t& nCellID,
         const uint8_t& nDLRB,
-        const int& CPType);
+        const cpType& CPType);
 
     const cvec& getRS(const uint8_t slot,
                     const uint8_t symb) const;
