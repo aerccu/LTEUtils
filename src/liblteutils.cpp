@@ -171,8 +171,8 @@ ivec getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
     const uint32_t qPrime = floor_i(nID1/30);
     const uint32_t q      = floor_i((nID1+qPrime*(qPrime+1)/2)/30);
     const uint32_t mPrime = nID1+q*(q+1)/2;
-    const uint32_t m0     = mod(mPrime, 31);
-    const uint32_t m1     = mod(m0+floor_i(mPrime/31)+1, 31);
+    const uint32_t m0     = utils::mod(mPrime, 31);
+    const uint32_t m1     = utils::mod(m0+floor_i(mPrime/31)+1, 31);
 
     ivec sTilda("0 0 0 0 1 0 0 1 0 1 1 0 0 1 1 1 1 1 0 0 0 1 1 0 1 1 1 0 1 0 1");
     sTilda = 1-2*sTilda;
@@ -183,14 +183,14 @@ ivec getSSSFD(const uint8_t nID1, const uint8_t nID2, const uint8_t slot){
     ivec zTilda("0 0 0 0 1 1 1 0 0 1 1 0 1 1 1 1 1 0 1 0 0 0 1 0 0 1 0 1 0 1 1");
     zTilda = 1-2*zTilda;
 
-    ivec s0_m0 = sTilda(mod(range(m0,m0+30),31));
-    ivec s1_m1 = sTilda(mod(range(m1,m1+30),31));
+    ivec s0_m0 = sTilda(utils::mod(utils::range(m0,m0+30),31));
+    ivec s1_m1 = sTilda(utils::mod(utils::range(m1,m1+30),31));
 
-    ivec c0 = cTilda(mod(range(nID2,nID2+30),31));
-    ivec c1 = cTilda(mod(range(nID2+3,nID2+30+3),31));
+    ivec c0 = cTilda(utils::mod(utils::range(nID2,nID2+30),31));
+    ivec c1 = cTilda(utils::mod(utils::range(nID2+3,nID2+30+3),31));
 
-    ivec z1_m0 = zTilda(mod(range(0,30)+mod(m0,8),31));
-    ivec z1_m1 = zTilda(mod(range(0,30)+mod(m1,8),31));
+    ivec z1_m0 = zTilda(utils::mod(utils::range(0,30)+utils::mod(m0,8),31));
+    ivec z1_m1 = zTilda(utils::mod(utils::range(0,30)+utils::mod(m1,8),31));
 
     ivec d1, d2;
     if (slot == 0){
@@ -231,8 +231,8 @@ cvec getRSDL(const uint32_t &slot, const uint32_t &sym,
     const uint32_t cInit = (1<<10)*(7*(slot+1)+sym+1)*(2*nIDCell+1)+2*nIDCell+nCyclPrefix;
     const ivec c = to_ivec(genPRBS(cInit, 4*N_MAX_RBDL));
 
-    cvec rlns = (1/pow(2,0.5))*((1-2*c(range(0,2,4*N_MAX_RBDL-1)))
-                +J*(1-2*c(range(1,2,4*N_MAX_RBDL-1))));
+    cvec rlns = (1/pow(2,0.5))*((1-2*c(utils::range(0,2,4*N_MAX_RBDL-1)))
+                +J*(1-2*c(utils::range(1,2,4*N_MAX_RBDL-1))));
 
     cvec res = rlns(N_MAX_RBDL - rbdl, 2*rbdl + N_MAX_RBDL - rbdl - 1);
 
@@ -340,4 +340,65 @@ cvec rateMatch(const cmat& d, const uint32_t& nE){
         j=mod(j+1,3*nR*nC);
     }
     return e;
+}
+
+mat rateUnmatch(const vec& eEst, const uint32_t nC){
+
+    mat dProbeReal = repmat(utils::range(0.0,2.0),1,nC,false);
+    mat dProbeImg  = repmat(utils::range(0.0,nC-1.0),3,1,true);
+    cmat dProbe = to_cmat(dProbeReal,dProbeImg);
+    cvec eProbe = rateMatch(dProbe,length(eEst));
+
+    const vec eX = eEst;
+    mat dX(3,nC);
+    dX = 0.0;
+    imat dXCount(3,nC);
+    dXCount = 0;
+    for (uint32_t t=0; t<length(eEst); t++){
+        uint8_t r = real(eProbe(t));
+        uint32_t c = imag(eProbe(t));
+        dX(r,c) += eX(t);
+        dXCount(r,c)++;
+    }
+
+    for (uint8_t r=0; r<3; r++){
+        for (uint32_t c=0; c<nC; c++){
+            if (dXCount(r,c)>1){
+                dX(r,c) = dX(r,c)/dXCount(r,c);
+            }
+        }
+    }
+
+    return dX;
+}
+
+/* convolutional encoding */
+bmat convEncode(const bvec& c){
+    Convolutional_Code coder;
+    ivec gen(3);
+    gen(0) = 0133;
+    gen(1) = 0171;
+    gen(2) = 0165;
+    coder.set_generator_polynomials(gen,7);
+
+    bvec dVec = coder.encode_tailbite(c);
+    bmat d    = reshape(dVec, 3, length(c));
+    
+    return d;
+}
+
+
+/* convolutional decoding */
+bvec convDecode(const mat& dEst){
+    Convolutional_Code coder;
+    ivec gen(3);
+    gen(0) = 0133;
+    gen(1) = 0171;
+    gen(2) = 0165;
+    coder.set_generator_polynomials(gen,7);
+
+    vec  dEstV = cvectorize(dEst);
+    bvec cEst  = coder.decode_tailbite(dEstV);
+
+    return cEst;
 }
