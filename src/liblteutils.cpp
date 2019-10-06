@@ -20,6 +20,7 @@
 
 #include "liblteutils.h"
 #include "utils.h"
+#include "rom.h"
 
 
 bvec genPRBS(const uint32_t cinit, const uint32_t pn) {
@@ -383,7 +384,7 @@ bmat convEncode(const bvec& c){
 
     bvec dVec = coder.encode_tailbite(c);
     bmat d    = reshape(dVec, 3, length(c));
-    
+
     return d;
 }
 
@@ -401,4 +402,87 @@ bvec convDecode(const mat& dEst){
     bvec cEst  = coder.decode_tailbite(dEstV);
 
     return cEst;
+}
+
+
+/* Class holding modulation maps */
+ModMap::ModMap(){
+    ivec mapQAMreal("1 1 -1 -1");
+    ivec mapQAMimag("1 -1 1 -1");
+
+    ivec mapQAM16real("1 1 3 3 1 1 3 3 -1 -1 -3 -3 -1 -1 -3 -3");
+    ivec mapQAM16imag("1 3 1 3 -1 -3 -1 -3 1 3 1 3 -1 -3 -1 -3");
+
+    ivec mapQAM64real("3 3 1 1 3 3 1 1 5 5 7 7 5 5 7 7 3 3 1 1 3 3 1 1 5 5 7 7 5 5 7 7 -3 -3 -1 -1 -3 -3 -1 -1 -5 -5 -7 -7 -5 -5 -7 -7 -3 -3 -1 -1 -3 -3 -1 -1 -5 -5 -7 -7 -5 -5 -7 -7");
+    ivec mapQAM64imag("3 1 3 1 5 7 5 7 3 1 3 1 5 7 5 7 -3 -1 -3 -1 -5 -7 -5 -7 -3 -1 -3 -1 -5 -7 -5 -7 3 1 3 1 5 7 5 7 3 1 3 1 5 7 5 7 -3 -1 -3 -1 -5 -7 -5 -7 -3 -1 -3 -1 -5 -7 -5 -7");
+
+    table.set_size(3);
+    table(0) = to_cvec(mapQAMreal, mapQAMimag)/sqrt(2);
+    table(1) = to_cvec(mapQAM16real, mapQAM16imag)/sqrt(10);
+    table(2) = to_cvec(mapQAM64real, mapQAM64imag)/sqrt(42);
+}
+
+const cvec& ModMap::operator()(const modType &mod) const {
+    if(mod==modType::QAM){
+        return table(0);
+    } else if (mod==modType::QAM16){
+        return table(1);
+    } else if (mod==modType::QAM64){
+        return table(2);
+    }
+};
+
+
+cvec modBits(const bvec& bits, const modType &mod) {
+    uint8_t bps;
+    if(mod==modType::QAM){
+        bps = 2;
+    } else if (mod==modType::QAM16){
+        bps = 4;
+    } else if (mod==modType::QAM64){
+        bps = 6;
+    } else {}
+    //[]
+
+    Modulator<complex<double>> modulator( ROMTABLES.modmap(mod), utils::range(0, (1<<bps)-1));
+    cvec res = modulator.modulate_bits(bits);
+    return res;
+}
+
+
+vec demodSymbs(const cvec& symbs, vec nP, const modType &mod) {
+    uint8_t bps;
+    if(mod==modType::QAM){
+        bps = 2;
+    } else if (mod==modType::QAM16){
+        bps = 4;
+    } else if (modType::QAM64){
+        bps = 6;
+    } else {}
+    //[]
+
+    Modulator<complex<double>> Modulator(ROMTABLES.modmap(mod), utils::range(0, (1<<bps)-1));
+    cvec gain = 1.0/to_cvec(sqrt(nP));
+    vec res = Modulator.demodulate_soft_bits( elem_mult(symbs, gain), gain, 1);
+    return res;
+}
+
+
+bvec getCRC(const bvec& a, const crcType crc) {
+    bvec poly;
+    if(crc==crcType::CRC8){
+        poly = bvec("1 1 0 0 1 1 0 1 1");
+    } else if (crc==crcType::CRC16){
+        poly = bvec("1 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 1");
+    } else if (crc==crcType::CRC24A){
+        poly = bvec("1 1 0 0 0 0 1 1 0 0 1 0 0 1 1 0 0 1 1 1 1 1 0 1 1");
+    } else if (crc==crcType::CRC24B){
+        poly = bvec("1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 1")
+    } else {}
+
+    CRC_Code crccalc;
+    crccalc.set_generator(poly);
+
+    bvec par; crccalc.parity(a, par);
+    return par;
 }
