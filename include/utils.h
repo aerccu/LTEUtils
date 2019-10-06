@@ -22,6 +22,7 @@
 
 #include <itpp/itbase.h>
 
+namespace utils {
 inline int mod(const int k, const int n){
     return (n == 0)? k: (k-n*itpp::floor_i((double)k/n));
 }
@@ -67,5 +68,5 @@ ivec range(const uint32_t first, const uint32_t incr, const uint32_t last){
 
 
 
-
+}
 #endif // UTILS_H
