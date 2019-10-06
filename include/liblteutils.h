@@ -29,6 +29,7 @@
 #include <rtl-sdr.h>
 #include <list>
 #include <complex>
+#include <cassert>
 #include <boost/math/special_functions.hpp>
 #include "processing.h"
 
@@ -36,7 +37,8 @@
 # define J (complex<double>(0,1))
 
 enum class cpType  {NONE = 0, NORMAL = 1, EXTENDED = 2};
-enum class modType {QAM  = 0, QAM16  = 1, QAM64    = 64};
+enum class modType {QAM  = 0, QAM16  = 1, QAM64    = 2};
+enum class crcType {CRC8 = 0, CRC16  = 1, CRC24A   = 2, CRC24B = 3};
 
 
 using namespace itpp;
@@ -114,7 +116,7 @@ class ModMap {
     ModMap();
 
     /* mod : QAM QAM16 QAM64 */
-    const cvec& operator()(const int8_t mod) const;
+    const cvec& operator()(const modType&) const;
 
     private:
     Array <cvec> table;
@@ -123,11 +125,11 @@ class ModMap {
 
 /* Compute CRC */
 /* crc : CRC8 CRC16 CRC24A/B */
-bvec getCRC(const bvec& a, const int8_t crc);
+bvec getCRC(const bvec& a, const crcType crc);
 
 /* Mod bits to symbols and demod symbols to bits */
-cvec modBits(const bvec& bits, const int8_t mod);
-vec demodSymbs(const cvec& symbs, vec nP, const int8_t mod);
+cvec modBits(const bvec& bits, const modType &mod);
+vec demodSymbs(const cvec& symbs, vec nP, const modType &mod);
 
 
 #endif // LIBLTEUTILS_H
